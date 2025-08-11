@@ -3,25 +3,62 @@ from django.http import HttpResponse
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
-from product.models import Product,Category
-from product.serializers import ProductSerializer,CategorySerializer
+from product.models import Product,Category,Review
+from product.serializers import ProductSerializer,CategorySerializer,ReviewSerializer,ProductImageSerializer
 from django.db.models import Count
 from rest_framework.views import APIView
 from rest_framework.mixins import CreateModelMixin,ListModelMixin
 from rest_framework.generics import ListCreateAPIView,RetrieveUpdateDestroyAPIView
 from rest_framework.viewsets import ModelViewSet
+from django_filters.rest_framework import DjangoFilterBackend
+from product.filters import ProductFilter
+from rest_framework.filters import SearchFilter,OrderingFilter
+from product.paginations import DefaultPagination
+from api.permissions import IsAdminOrReadOnly,fullDjangoModelPermission
+from rest_framework.permissions import DjangoModelPermissions,DjangoModelPermissionsOrAnonReadOnly
+from product.permissions import IsReviewOrReadOnly
+from product.models import ProductImage
+from drf_yasg.utils import swagger_auto_schema
 # Create your views here.
 
 class ProductViewSet(ModelViewSet):
+   """
+   API endpoint for managing projects in the e-commerce store
+     - Allow authenticated  admin to create, update, and delete products
+     - Allows users to browse and filter products
+     - Support Searching by name description category
+     - Support ordering by price and updated_at
+   """
    queryset = Product.objects.all()
    serializer_class = ProductSerializer
+   filter_backends = [DjangoFilterBackend,SearchFilter,OrderingFilter]
+   filterset_class =  ProductFilter
+   pagination_class = DefaultPagination
+   search_fields = ['name','description']
+   ordering_fields = ['price','updated_at']
+   # permission_classes = [IsAdminUser]
+   permission_classes = [IsAdminOrReadOnly]
+   # permission_classes = [fullDjangoModelPermission]
+   # permission_classes = [DjangoModelPermissionsOrAnonReadOnly]
 
-   def destroy(self, request, *args, **kwargs):
-      product  = self.get_object()
-      if product.stock > 10:
-         return Response({'message':'Product With stock more than 10 could not be deleted'})
-      self.perform_destroy(product)
-      return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+   # def get_permissions(self):
+   #    if self.request.method == 'GET':
+   #       return [AllowAny()]
+   #    return [IsAdminUser()]
+
+
+
+class ProductImageViewSet(ModelViewSet):
+   serializer_class = ProductImageSerializer
+   permission_classes = [IsAdminOrReadOnly]
+
+   def get_queryset(self):
+      return ProductImage.objects.filter(product_id = self.kwargs.get('product_pk'))
+   
+   def perform_create(self, serializer):
+      return serializer.save(product_id=self.kwargs.get('product_pk'))
 
 
 
@@ -31,135 +68,31 @@ class CategoryViewSet(ModelViewSet):
       product_count = Count('products')
       ).all()
    serializer_class = CategorySerializer
+   permission_classes = [IsAdminOrReadOnly]
 
 
+class ReviewViewSet(ModelViewSet):
+   serializer_class = ReviewSerializer
+   permission_classes = [IsReviewOrReadOnly]
 
+   def perform_create(self, serializer):
+      serializer.save(user=self.request.user)
 
+   def perform_update(self, serializer):
+      serializer.save(user=self.request.user)
 
-# class ProductList(ListCreateAPIView):
-   #jodi kokhono logical things handle kora na lage tahole ei attributes gula override korbo
-   # queryset = Product.objects.all()
-   # serializer_class = ProductSerializer
+   def get_queryset(self):
+      return  Review.objects.filter(product_id=self.kwargs.get('product_pk'))  
 
-   # Jodi kokhono logical bepar means first user login tokhon function gula use korbo
-   # def get_queryset(self):
-   #    return Product.objects.select_related('category').all()
-   # def get_serializer_class(self):
-   #    return ProductSerializer
-   # def get_serializer_context(self):
-   #    return {'request':self.request}
-
-# class ProductDetails(RetrieveUpdateDestroyAPIView):
-#    queryset = Product.objects.all()
-#    serializer_class = ProductSerializer
-#    lookup_field = 'id'
-
-
-
-
-
-# class CategoryList(ListCreateAPIView):
-#    queryset = Category.objects.annotate(
-#       product_count = Count('products')
-#       ).all()
-#    serializer_class = CategorySerializer
-
-
-
-# class CategoryDetails(RetrieveUpdateDestroyAPIView):
-#    queryset = Category.objects.annotate(
-#       product_count = Count('products')
-#       ).all()
-#    serializer_class = CategorySerializer
-
-
-
-
-# class ViewProduct(APIView):
-#    def get(self,request):
-#       products = Product.objects.select_related('category').all()
-#       serializer = ProductSerializer(products,many=True)
-
-#       return Response(serializer.data)
-   
-#    def post(self,request):
-#       serializer = ProductSerializer(data=request.data)   #deserializer
-#       serializer.is_valid(raise_exception=True)
-#       serializer.save()
-#       return Response(serializer.data,status=status.HTTP_201_CREATED)
+   def get_serializer_context(self):
+      return {'product_id':self.kwargs.get('product_pk')}
 
 
 
 
 
 
-# class ViewSpecificProduct(APIView):
-#    def get(self,request,id):
-#       product =get_object_or_404(Product,pk=id)
-#       serializer = ProductSerializer(product)
-#       return Response(serializer.data)
-   
-#    def put(self,request,id):
-#       product =get_object_or_404(Product,pk=id)
-#       serializer = ProductSerializer(product,data=request.data)
-#       serializer.is_valid(raise_exception=True)
-#       serializer.save()
-#       return Response(serializer.data)
-   
-#    def delete(self,request,id):
-#       product =get_object_or_404(Product,pk=id)
-#       product.delete()
-#       return Response(status=status.HTTP_204_NO_CONTENT)
 
-
-
-
-
-
-# class ViewCategories(APIView):
-#    def get(self,request):
-#       categories = Category.objects.annotate(
-#       product_count = Count('products')
-#       ).all()
-#       serializer = CategorySerializer(categories,many = True)
-#       return Response(serializer.data)
-   
-#    def post(self,request):
-#       serializer = CategorySerializer(data=request.data)
-#       serializer.is_valid(raise_exception=True)
-#       serializer.save()
-#       return Response(serializer.data,status=status.HTTP_201_CREATED)
-
-
-
-# class ViewSpecificCategory(APIView):
-#    def get(self,request,id):
-#       category = get_object_or_404(Category.objects.annotate(
-#             product_count = Count('products')
-#             ).all(),pk=id
-#       )
-#       serializer = CategorySerializer(category)
-#       return Response(serializer.data)
-
-
-#    def put(self,request,id):
-#        category = get_object_or_404(Category.objects.annotate(
-#             product_count = Count('products')
-#             ).all(),pk=id
-#           )
-#        serializer = CategorySerializer(category,data=request.data)
-#        serializer.is_valid(raise_exception=True)
-#        serializer.save()
-#        return Response(serializer.data)
-
-
-#    def delete(self,request,id):
-#       category = get_object_or_404(Category.objects.annotate(
-#             product_count = Count('products')
-#             ).all(),pk=id
-#       )
-#       category.delete()
-#       return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 

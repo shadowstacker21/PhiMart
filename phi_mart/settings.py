@@ -191,18 +191,18 @@ REST_FRAMEWORK = {
 }
 
 
-# SIMPLE_JWT = {
-#    'AUTH_HEADER_TYPES': ('JWT',),
-#    'ACESS_TOKEN_LIFETIME': timedelta(days=1)
-# }
+SIMPLE_JWT = {
+   'AUTH_HEADER_TYPES': ('JWT',),
+   'ACESS_TOKEN_LIFETIME': timedelta(days=1)
+}
 
 # when render this website i will delete this simple_jwt and use upper jwt
-SIMPLE_JWT = {
-    'AUTH_HEADER_TYPES': ('JWT',),
-    'ACCESS_TOKEN_LIFETIME': timedelta(days=15),
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
+# SIMPLE_JWT = {
+#     'AUTH_HEADER_TYPES': ('JWT',),
+#     'ACCESS_TOKEN_LIFETIME': timedelta(days=15),
+#     'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
     
-}
+# }
 
 DJOSER = {
     'SERIALIZERS':{

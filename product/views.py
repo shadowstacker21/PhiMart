@@ -22,31 +22,41 @@ from drf_yasg.utils import swagger_auto_schema
 # Create your views here.
 
 class ProductViewSet(ModelViewSet):
-   """
-   API endpoint for managing projects in the e-commerce store
-     - Allow authenticated  admin to create, update, and delete products
-     - Allows users to browse and filter products
-     - Support Searching by name description category
+    """
+    API endpoint for managing products in the e-commerce store
+     - Allows authenticated admin to create, update, and delete products
+     - Allows users to browse and filter product
+     - Support searching by name, description, and category
      - Support ordering by price and updated_at
-   """
-   serializer_class = ProductSerializer
-   filter_backends = [DjangoFilterBackend,SearchFilter,OrderingFilter]
-   filterset_class =  ProductFilter
-   pagination_class = DefaultPagination
-   search_fields = ['name','description']
-   ordering_fields = ['price','updated_at']
-   # permission_classes = [IsAdminUser]
-   permission_classes = [IsAdminOrReadOnly]
-   # permission_classes = [fullDjangoModelPermission]
-   # permission_classes = [DjangoModelPermissionsOrAnonReadOnly]
+    """
+    queryset = Product.objects.all()
+    serializer_class = ProductSerializer
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    filterset_class = ProductFilter
+    pagination_class = DefaultPagination
+    search_fields = ['name', 'description']
+    ordering_fields = ['price', 'updated_at']
+    permission_classes = [IsAdminOrReadOnly]
 
-   def get_queryset(self):
-      return Product.objects.prefetch_related('images').all()
+    @swagger_auto_schema(
+        operation_summary='Retrive a list of products'
+    )
+    def list(self, request, *args, **kwargs):
+        """Retrive all the products"""
+        return super().list(request, *args, **kwargs)
 
-   # def get_permissions(self):
-   #    if self.request.method == 'GET':
-   #       return [AllowAny()]
-   #    return [IsAdminUser()]
+    @swagger_auto_schema(
+        operation_summary="Create a product by admin",
+        operation_description="This allow an admin to create a product",
+        request_body=ProductSerializer,
+        responses={
+            201: ProductSerializer,
+            400: "Bad Request"
+        }
+    )
+    def create(self, request, *args, **kwargs):
+        """Only authenticated admin can create product"""
+        return super().create(request, *args, **kwargs)
 
 
 
